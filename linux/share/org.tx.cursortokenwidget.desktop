@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Cursor Tokens
+Comment=Cursor allowance, on-demand spend, and token totals
+Exec=cursor-tokens-app
+Icon=view-financial-account
+Terminal=false
+Categories=Qt;KDE;Utility;
+StartupWMClass=cursor-tokens-app
+X-KDE-StartupNotify=true

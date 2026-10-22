@@ -1,0 +1,16 @@
+{
+    "KPlugin": {
+        "Id": "org.tx.cursortokenwidget",
+        "Name": "Cursor Usage",
+        "Description": "Cursor model allowance, on-demand spend, and recent token use.",
+        "Category": "System Information",
+        "Icon": "view-financial-account",
+        "EnabledByDefault": true,
+        "License": "LicenseRef-AllRightsReserved",
+        "Version": "1.0",
+        "Website": "https://github.com/norbertvannobelen/cursor_token_widget"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-MainScript": "ui/main.qml"
+}

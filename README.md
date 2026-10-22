@@ -39,3 +39,18 @@ You can also open the app from the menu bar. The menu bar title shows the two al
 ## Refresh
 
 The app refreshes every 5 minutes and updates the widget. The widget’s own timeline also requests a refresh every 5 minutes, so the numbers keep moving when the window is closed. macOS can delay a widget refresh while the Mac is idle. Quitting the app from the menu bar stops the in-app timer; the widget still refreshes on its own schedule.
+
+## Linux (KDE Plasma 6)
+
+The same figures are available as a Plasma widget and a Kirigami window. A bar turns red once its displayed usage is over 90%, including on-demand spend against its limit. Clicking the widget does not open the window.
+
+Requirements: Python 3, and Plasma 6 (`kpackagetool6`). The window also needs Qt 6 and Kirigami 6 to compile. Sign-in is the Cursor account already stored by the editor, or a pasted `WorkosCursorSessionToken`. There is no embedded browser; the sign-in page can open cursor.com so the cookie can be copied.
+
+```bash
+make -C linux test
+make -C linux install
+```
+
+That installs `cursor-tokens` on `~/.local/bin`, registers the **Cursor Usage** widget for the current user, and builds **Cursor Tokens** when the Qt packages are present. Add the widget from the desktop: right-click the wallpaper, choose **Add Widgets**, and search for **Cursor Usage**. Sign in from the widget’s **Configure Cursor Usage** action, or from the Cursor Tokens application.
+
+The widget and the window both call `cursor-tokens refresh` every 5 minutes. The session file stays in `$XDG_DATA_HOME/cursor-tokens` (mode 0600) and is not written into this repo.

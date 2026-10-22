@@ -54,3 +54,21 @@ make -C linux install
 That installs `cursor-tokens` on `~/.local/bin`, registers the **Cursor Usage** widget for the current user, and builds **Cursor Tokens** when the Qt packages are present. Add the widget from the desktop: right-click the wallpaper, choose **Add Widgets**, and search for **Cursor Usage**. Sign in from the widget’s **Configure Cursor Usage** action, or from the Cursor Tokens application.
 
 The widget and the window both call `cursor-tokens refresh` every 5 minutes. The session file stays in `$XDG_DATA_HOME/cursor-tokens` (mode 0600) and is not written into this repo.
+
+## Windows 11
+
+The same figures are a Widgets Board widget plus a window. A bar turns red once its displayed usage is over 90%, including on-demand spend against its limit. A click on the widget refreshes the numbers in place.
+
+Requirements: Windows 11, Developer Mode, Visual Studio 2022 or later with the Windows application development workload, and the .NET 8 SDK. The package uses Windows App SDK 2.3.1. Sign-in is the Cursor account already stored by the editor (`%APPDATA%\Cursor\User\globalStorage\state.vscdb`), or a pasted `WorkosCursorSessionToken`. The sign-in page opens in the browser so the cookie can be copied.
+
+```powershell
+.\windows\build.ps1
+```
+
+On a Mac or Linux machine, `make -C windows test` runs the shared logic tests. Open `windows/CursorTokens.sln` in Visual Studio, choose the x64 platform, and deploy **CursorTokens.App**. The first deploy needs a test certificate whose subject is `CN=TX Labs`, matching `Package.appxmanifest`. In the packaging manifest designer, choose **Choose Certificate**, then **Create**, and set the publisher to `CN=TX Labs`. Trust that certificate when Windows asks.
+
+Launch **Cursor Tokens** from the Start menu and sign in. Open the Widgets Board with Win+W, choose **Add widgets**, and pin **Cursor Usage**. The small size matches the weather widget; medium and large show the same card with more room.
+
+The window refreshes every 5 minutes while it is open. While the Widgets Board is showing the widget, the provider also refreshes every 5 minutes. After both are closed, the next refresh happens when the board shows the widget again. The session stays in the per-user Cursor Tokens data folder and is not written into this repo.
+
+The usage rules, cookie encoding, Adaptive Card, and package manifest are covered by `make -C windows test`. The WinUI window and the Widgets Board host were not launched from this repo’s macOS checkout.

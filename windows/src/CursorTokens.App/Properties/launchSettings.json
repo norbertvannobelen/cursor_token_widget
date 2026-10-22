@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Cursor Tokens": {
+      "commandName": "MsixPackage"
+    },
+    "Widget provider": {
+      "commandName": "MsixPackage",
+      "commandLineArgs": "-RegisterProcessAsComServer"
+    }
+  }
+}

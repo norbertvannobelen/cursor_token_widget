@@ -1,5 +1,8 @@
+import os
 import SwiftUI
 import WidgetKit
+
+private let widgetLogger = Logger(subsystem: "org.tx.cursortokenwidget", category: "widget")
 
 struct UsageEntry: TimelineEntry {
     let date: Date
@@ -28,16 +31,34 @@ struct UsageProvider: TimelineProvider {
     }
 
     private static func loadSnapshot() async -> UsageSnapshot {
-        if SessionStore.load() == nil {
-            return .signedOut()
+        let cached = SnapshotStore.load()
+        let sessionPresent = SessionStore.load() != nil
+        let snapshot: UsageSnapshot
+        if let cached, cached.isSignedIn, !sessionPresent {
+            snapshot = cached
+        } else if !sessionPresent {
+            snapshot = .signedOut()
+        } else if let cached,
+                  cached.isSignedIn,
+                  cached.error == nil,
+                  Date().timeIntervalSince(cached.updatedAt) < UsageTiming.cacheFreshness {
+            snapshot = cached
+        } else {
+            snapshot = await UsageRefresh.refresh()
         }
-        if let existing = SnapshotStore.load(),
-           existing.isSignedIn,
-           existing.error == nil,
-           Date().timeIntervalSince(existing.updatedAt) < UsageTiming.cacheFreshness {
-            return existing
+        publishStatus(snapshot, sessionPresent: sessionPresent)
+        return snapshot
+    }
+
+    private static func publishStatus(_ snapshot: UsageSnapshot, sessionPresent: Bool) {
+        let cursor = snapshot.cursorModelsPercent.map { String(Int($0.rounded())) } ?? "nil"
+        let other = snapshot.otherModelsPercent.map { String(Int($0.rounded())) } ?? "nil"
+        let line = "signedIn=\(snapshot.isSignedIn) session=\(sessionPresent) cursor=\(cursor) other=\(other) today=\(snapshot.todayTokens.map(String.init) ?? "nil") week=\(snapshot.weekTokens.map(String.init) ?? "nil") month=\(snapshot.monthTokens.map(String.init) ?? "nil")"
+        if let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try? Data(line.utf8).write(to: directory.appendingPathComponent("widget-status.txt"), options: .atomic)
         }
-        return await UsageRefresh.refresh()
+        widgetLogger.info("\(line, privacy: .public)")
     }
 }
 
@@ -66,7 +87,6 @@ struct UsageWidgetView: View {
             }
         }
         .padding(12)
-        .widgetURL(URL(string: "cursortokenwidget://open"))
     }
 
     private var signedIn: some View {
@@ -96,13 +116,11 @@ struct UsageWidgetView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Cursor")
                 .font(.system(size: 13, weight: .semibold))
-            Text("Sign in to see model allowance and token use.")
+            Text("Sign in to load model allowance and token use.")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
-            Text("Open the app")
-                .font(.system(size: 12, weight: .semibold))
         }
     }
 }

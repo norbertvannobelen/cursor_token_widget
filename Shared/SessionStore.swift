@@ -2,31 +2,30 @@ import Foundation
 
 enum SessionStore {
     private static let fileName = "session.txt"
+    private static let account = "session"
 
     static func save(_ session: String) {
-        guard let url = fileURL() else { return }
-        let directory = url.deletingLastPathComponent()
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try? Data(session.utf8).write(to: url, options: .atomic)
-        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        let data = Data(session.utf8)
+        AppGroup.writeData(data, named: fileName, permissions: 0o600)
+        KeychainStore.save(data, account: account)
     }
 
     static func load() -> String? {
-        guard let url = fileURL(),
-              let data = try? Data(contentsOf: url),
-              let value = String(data: data, encoding: .utf8) else {
-            return nil
+        if let value = string(from: AppGroup.readData(named: fileName)) {
+            KeychainStore.save(Data(value.utf8), account: account)
+            return value
         }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        return string(from: KeychainStore.load(account: account))
     }
 
     static func delete() {
-        guard let url = fileURL() else { return }
-        try? FileManager.default.removeItem(at: url)
+        AppGroup.remove(named: fileName)
+        KeychainStore.delete(account: account)
     }
 
-    private static func fileURL() -> URL? {
-        AppGroup.containerURL()?.appendingPathComponent(fileName)
+    private static func string(from data: Data?) -> String? {
+        guard let data, let value = String(data: data, encoding: .utf8) else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

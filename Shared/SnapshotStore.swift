@@ -2,6 +2,7 @@ import Foundation
 
 enum SnapshotStore {
     private static let fileName = "snapshot.json"
+    private static let account = "snapshot"
     private static let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -15,22 +16,18 @@ enum SnapshotStore {
     }()
 
     static func save(_ snapshot: UsageSnapshot) {
-        guard let url = fileURL() else { return }
-        let directory = url.deletingLastPathComponent()
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         guard let data = try? encoder.encode(snapshot) else { return }
-        try? data.write(to: url, options: .atomic)
+        AppGroup.writeData(data, named: fileName)
+        KeychainStore.save(data, account: account)
     }
 
     static func load() -> UsageSnapshot? {
-        guard let url = fileURL(),
-              let data = try? Data(contentsOf: url) else {
-            return nil
+        if let data = AppGroup.readData(named: fileName),
+           let snapshot = try? decoder.decode(UsageSnapshot.self, from: data) {
+            KeychainStore.save(data, account: account)
+            return snapshot
         }
+        guard let data = KeychainStore.load(account: account) else { return nil }
         return try? decoder.decode(UsageSnapshot.self, from: data)
-    }
-
-    private static func fileURL() -> URL? {
-        AppGroup.containerURL()?.appendingPathComponent(fileName)
     }
 }

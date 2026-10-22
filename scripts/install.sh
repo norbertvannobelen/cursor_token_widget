@@ -11,6 +11,7 @@ fi
 
 rm -rf "$DEST"
 ditto "$APP" "$DEST"
+xattr -dr com.apple.quarantine "$DEST" || true
 open "$DEST"
 echo "Installed to $DEST"
 echo "Add the widget: Control-click the desktop, choose Edit Widgets, and drag Cursor Usage onto the desktop."

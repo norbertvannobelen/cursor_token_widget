@@ -11,6 +11,28 @@ enum UsageFormatting {
         return min(max(value, 0), 100) / 100
     }
 
+    /// Included and on-demand bars turn red once the displayed percent is above 90.
+    static func exceedsWarning(_ percent: Double?) -> Bool {
+        guard let percent, percent.isFinite else { return false }
+        return Int(percent.rounded()) > 90
+    }
+
+    /// `used` and `limit` are cent amounts. A missing or non-positive limit has no bar.
+    static func percentOfLimit(used: Int?, limit: Int?) -> Double? {
+        guard let limit, limit > 0 else { return nil }
+        return Double(used ?? 0) / Double(limit) * 100
+    }
+
+    static func formatCents(_ cents: Int?) -> String {
+        guard let cents else { return "—" }
+        let sign = cents < 0 ? "-" : ""
+        let absolute = abs(cents)
+        if absolute % 100 == 0 {
+            return "\(sign)$\(absolute / 100)"
+        }
+        return sign + String(format: "$%.2f", Double(absolute) / 100)
+    }
+
     static func formatTokenCount(_ value: Int?) -> String {
         guard let value else { return "—" }
         let absolute = Double(max(value, 0))

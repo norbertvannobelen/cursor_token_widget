@@ -75,6 +75,7 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 16) {
             header
             allowanceCard
+            onDemandCard
             tokenCard
             if let error = model.snapshot.error {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -144,6 +145,33 @@ struct ContentView: View {
             }
             .padding(.top, 6)
         }
+    }
+
+    @ViewBuilder
+    private var onDemandCard: some View {
+        if let demand = model.snapshot.onDemand {
+            GroupBox("On-demand") {
+                VStack(alignment: .leading, spacing: 10) {
+                    moneyRow("Usage", demand.usageText)
+                    moneyRow("Spend limit", demand.limitText)
+                    UsageBar(percent: demand.percent, tint: .orange, height: 8)
+                }
+                .padding(.top, 6)
+            }
+        }
+    }
+
+    private func moneyRow(_ title: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(.headline)
+            Spacer()
+            Text(value)
+                .font(.title3.weight(.semibold))
+                .monospacedDigit()
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title) \(value)")
     }
 
     private var tokenCard: some View {
@@ -278,11 +306,21 @@ struct UsageBar: View {
                 Capsule()
                     .fill(.quaternary)
                 Capsule()
-                    .fill(renderingMode == .accented ? AnyShapeStyle(.primary) : AnyShapeStyle(tint))
+                    .fill(barFill)
                     .frame(width: max(0, geo.size.width * UsageFormatting.barFraction(percent)))
             }
         }
         .frame(height: height)
+    }
+
+    private var barFill: AnyShapeStyle {
+        if UsageFormatting.exceedsWarning(percent) {
+            return AnyShapeStyle(.red)
+        }
+        if renderingMode == .accented {
+            return AnyShapeStyle(.primary)
+        }
+        return AnyShapeStyle(tint)
     }
 }
 

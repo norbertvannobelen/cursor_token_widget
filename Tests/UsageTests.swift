@@ -16,6 +16,25 @@ final class UsageFormattingTests: XCTestCase {
         XCTAssertEqual(UsageFormatting.formatTokenCount(nil), "—")
     }
 
+    func testOnDemandCentsAndWarningThreshold() {
+        XCTAssertEqual(UsageFormatting.formatCents(0), "$0")
+        XCTAssertEqual(UsageFormatting.formatCents(5_000), "$50")
+        XCTAssertEqual(UsageFormatting.formatCents(1_250), "$12.50")
+        XCTAssertEqual(UsageFormatting.formatCents(nil), "—")
+        XCTAssertEqual(UsageFormatting.percentOfLimit(used: 0, limit: 5_000) ?? -1, 0, accuracy: 0.001)
+        XCTAssertEqual(UsageFormatting.percentOfLimit(used: 4_600, limit: 5_000) ?? 0, 92, accuracy: 0.001)
+        XCTAssertNil(UsageFormatting.percentOfLimit(used: 100, limit: nil))
+        XCTAssertFalse(UsageFormatting.exceedsWarning(90))
+        XCTAssertFalse(UsageFormatting.exceedsWarning(82.67))
+        XCTAssertTrue(UsageFormatting.exceedsWarning(90.5))
+        XCTAssertTrue(UsageFormatting.exceedsWarning(96))
+        let demand = OnDemandSummary.make(enabled: true, usedCents: 0, limitCents: 5_000)
+        XCTAssertEqual(demand?.usageText, "$0")
+        XCTAssertEqual(demand?.limitText, "$50")
+        XCTAssertEqual(demand?.pairText, "$0/$50")
+        XCTAssertNil(OnDemandSummary.make(enabled: nil, usedCents: nil, limitCents: nil))
+    }
+
     func testBarFractionClamps() {
         XCTAssertEqual(UsageFormatting.barFraction(50), 0.5, accuracy: 0.001)
         XCTAssertEqual(UsageFormatting.barFraction(140), 1, accuracy: 0.001)
@@ -70,6 +89,27 @@ final class CursorDecodingTests: XCTestCase {
         XCTAssertEqual(summary.membershipType, "pro_plus")
         XCTAssertEqual(summary.individualUsage?.plan?.autoPercentUsed?.value ?? 0, 41.2075, accuracy: 0.001)
         XCTAssertEqual(summary.individualUsage?.plan?.apiPercentUsed?.value ?? 0, 82.67, accuracy: 0.001)
+    }
+
+    func testOnDemandUsageDecodesCentsAndNullLimit() throws {
+        let json = """
+        {"individualUsage":{"onDemand":{"enabled":true,"used":0,"limit":5000,"remaining":5000}}}
+        """.data(using: .utf8)!
+        let summary = try JSONDecoder().decode(UsageSummaryResponse.self, from: json)
+        XCTAssertEqual(summary.individualUsage?.onDemand?.enabled, true)
+        XCTAssertEqual(summary.individualUsage?.onDemand?.used?.value, 0)
+        XCTAssertEqual(summary.individualUsage?.onDemand?.limit?.value, 5000)
+
+        let unlimited = """
+        {"individualUsage":{"onDemand":{"enabled":true,"used":1250,"limit":null}}}
+        """.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(UsageSummaryResponse.self, from: unlimited)
+        XCTAssertEqual(decoded.individualUsage?.onDemand?.used?.value, 1250)
+        XCTAssertNil(decoded.individualUsage?.onDemand?.limit?.value)
+        let display = OnDemandSummary.make(enabled: true, usedCents: 1250, limitCents: nil)
+        XCTAssertEqual(display?.limitText, "No limit")
+        XCTAssertEqual(display?.pairText, "$12.50")
+        XCTAssertNil(display?.percent)
     }
 
     func testAggregatedTokensSumStringAndMissingCacheWrite() throws {

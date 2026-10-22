@@ -92,11 +92,11 @@ struct UsageWidgetView: View {
                 signedOut
             }
         }
-        .padding(12)
+        .padding(10)
     }
 
     private var signedIn: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .firstTextBaseline) {
                 Text("Usage")
                     .font(.system(size: 13, weight: .semibold))
@@ -107,8 +107,21 @@ struct UsageWidgetView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            CompactMeter(title: "Cursor", percent: snapshot.cursorModelsPercent, tint: .blue)
-            CompactMeter(title: "Other", percent: snapshot.otherModelsPercent, tint: .primary.opacity(0.55))
+            CompactMeter(
+                title: "Cursor",
+                value: UsageFormatting.formatPercent(snapshot.cursorModelsPercent),
+                percent: snapshot.cursorModelsPercent,
+                tint: .blue
+            )
+            CompactMeter(
+                title: "Other",
+                value: UsageFormatting.formatPercent(snapshot.otherModelsPercent),
+                percent: snapshot.otherModelsPercent,
+                tint: .primary.opacity(0.55)
+            )
+            if let demand = snapshot.onDemand {
+                CompactMeter(title: "On-demand", value: demand.pairText, percent: demand.percent, tint: .orange)
+            }
             Spacer(minLength: 2)
             VStack(spacing: 2) {
                 CompactStat(label: "Today", tokens: snapshot.todayTokens)
@@ -133,32 +146,46 @@ struct UsageWidgetView: View {
 
 private struct CompactMeter: View {
     var title: String
+    var value: String
     var percent: Double?
     var tint: Color
     @Environment(\.widgetRenderingMode) private var renderingMode
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title)
                     .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
                 Spacer(minLength: 4)
-                Text(UsageFormatting.formatPercent(percent))
+                Text(value)
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(.quaternary)
                     Capsule()
-                        .fill(renderingMode == .accented ? AnyShapeStyle(.primary) : AnyShapeStyle(tint))
+                        .fill(barFill)
                         .frame(width: max(0, geo.size.width * UsageFormatting.barFraction(percent)))
                 }
             }
-            .frame(height: 5)
+            .frame(height: 4)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title) models \(UsageFormatting.formatPercent(percent))")
+        .accessibilityLabel("\(title) \(value)")
+    }
+
+    private var barFill: AnyShapeStyle {
+        if UsageFormatting.exceedsWarning(percent) {
+            return AnyShapeStyle(.red)
+        }
+        if renderingMode == .accented {
+            return AnyShapeStyle(.primary)
+        }
+        return AnyShapeStyle(tint)
     }
 }
 

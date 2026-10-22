@@ -59,17 +59,49 @@ struct FlexDouble: Decodable {
     }
 }
 
+struct NullableInt: Decodable {
+    let value: Int?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            value = nil
+            return
+        }
+        if let intValue = try? container.decode(Int.self) {
+            value = intValue
+            return
+        }
+        if let doubleValue = try? container.decode(Double.self) {
+            value = Int(doubleValue.rounded())
+            return
+        }
+        if let stringValue = try? container.decode(String.self), let parsed = Double(stringValue) {
+            value = Int(parsed.rounded())
+            return
+        }
+        throw DecodingError.dataCorruptedError(in: container, debugDescription: "Expected a whole number")
+    }
+}
+
 struct UsageSummaryResponse: Decodable {
     var membershipType: String?
     var individualUsage: IndividualUsage?
 
     struct IndividualUsage: Decodable {
         var plan: Plan?
+        var onDemand: OnDemand?
     }
 
     struct Plan: Decodable {
         var autoPercentUsed: FlexDouble?
         var apiPercentUsed: FlexDouble?
+    }
+
+    struct OnDemand: Decodable {
+        var enabled: Bool?
+        var used: NullableInt?
+        var limit: NullableInt?
     }
 }
 

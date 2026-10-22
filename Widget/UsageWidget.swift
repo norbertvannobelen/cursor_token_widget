@@ -1,3 +1,4 @@
+import AppIntents
 import os
 import SwiftUI
 import WidgetKit
@@ -65,8 +66,13 @@ struct UsageProvider: TimelineProvider {
 struct UsageWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "CursorUsageWidget", provider: UsageProvider()) { entry in
-            UsageWidgetView(snapshot: entry.snapshot)
-                .containerBackground(.background, for: .widget)
+            Button(intent: StayOnWidgetIntent()) {
+                UsageWidgetView(snapshot: entry.snapshot)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .containerBackground(.background, for: .widget)
         }
         .configurationDisplayName("Cursor Usage")
         .description("Cursor model allowance and recent token use.")

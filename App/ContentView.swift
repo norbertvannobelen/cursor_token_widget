@@ -5,6 +5,7 @@ import WidgetKit
 struct ContentView: View {
     @EnvironmentObject private var model: UsageModel
     @State private var showingLogin = false
+    @State private var showingWidgetHelp = false
     @State private var pastedToken = ""
 
     var body: some View {
@@ -164,12 +165,55 @@ struct ContentView: View {
     }
 
     private var widgetHelp: some View {
-        DisclosureGroup("Add the desktop widget") {
-            Text("Control-click the desktop, choose Edit Widgets, search for Cursor Usage, and drag the small widget onto the desktop. It is the same size as the small Weather widget.")
-                .font(.caption)
+        Button {
+            showingWidgetHelp = true
+        } label: {
+            Label("Add the desktop widget", systemImage: "plus.rectangle.on.rectangle")
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.large)
+        .sheet(isPresented: $showingWidgetHelp) {
+            AddWidgetSheet()
+        }
+    }
+}
+
+private struct AddWidgetSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Add the desktop widget")
+                .font(.title2.bold())
+            VStack(alignment: .leading, spacing: 8) {
+                step("1", "Control-click the desktop wallpaper.")
+                step("2", "Choose Edit Widgets.")
+                step("3", "Search for Cursor Usage.")
+                step("4", "Click the small widget, or drag it onto the desktop. It is the same size as the small Weather widget.")
+            }
+            Text("macOS does not let an app place a desktop widget by itself. Clicking the widget in that gallery adds it.")
+                .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 4)
+            HStack {
+                Spacer()
+                Button("Done") { dismiss() }
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(24)
+        .frame(width: 440)
+    }
+
+    private func step(_ number: String, _ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text(number)
+                .font(.headline.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 16, alignment: .trailing)
+            Text(text)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

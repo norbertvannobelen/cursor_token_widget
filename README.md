@@ -4,7 +4,7 @@ A small macOS app and desktop widget for the same Cursor usage figures as the da
 
 - **Cursor Models** and **Other Models** allowance, as a percent and a bar
 - **Today**, **7 days**, and **30 days** token totals
-- Refreshes every 5 minutes while the app is running, and the widget asks macOS to refresh on that same interval
+- The desktop widget refreshes about every 5 minutes on its own, including while Cursor Tokens is quit. The app window uses the same interval while it is open.
 
 The widget is the small system size, the same class as the small Weather widget.
 
@@ -16,7 +16,7 @@ Open **Cursor Tokens** and use one of these:
 2. **Sign in with email or SSO** opens Cursor’s site inside the app and keeps the session cookie.
 3. **Paste a session token** if a provider blocks the embedded browser. In Safari, open [cursor.com/dashboard](https://cursor.com/dashboard), then copy the `WorkosCursorSessionToken` cookie value.
 
-The session stays in the app’s private App Group container. It is not written into this repo.
+The session is shared with the widget, which uses it for its own refresh. It is not written into this repo.
 
 ## Build
 
@@ -38,7 +38,7 @@ You can also open the app from the menu bar. The menu bar title shows the two al
 
 ## Refresh
 
-The app refreshes every 5 minutes and updates the widget. The widget’s own timeline also requests a refresh every 5 minutes, so the numbers keep moving when the window is closed. macOS can delay a widget refresh while the Mac is idle. Quitting the app from the menu bar stops the in-app timer; the widget still refreshes on its own schedule.
+The widget asks macOS for a new timeline every 5 minutes and loads the usage itself, using the shared session. That continues after you quit Cursor Tokens. While the app is open it refreshes on the same interval and asks the widget to reload. macOS can delay a scheduled widget refresh while the Mac is idle.
 
 ## Linux (KDE Plasma 6)
 

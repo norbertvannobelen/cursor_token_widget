@@ -6,11 +6,15 @@ import SwiftUI
 struct CursorTokenApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var model: UsageModel
+    @StateObject private var menuBar: MenuBarController
 
     init() {
         let model = UsageModel()
+        let menuBar = MenuBarController()
         _model = StateObject(wrappedValue: model)
+        _menuBar = StateObject(wrappedValue: menuBar)
         model.start()
+        menuBar.bind(model)
     }
 
     var body: some Scene {
@@ -39,34 +43,6 @@ struct CursorTokenApp: App {
                 .disabled(model.isRefreshing)
             }
         }
-
-        MenuBarExtra(isInserted: menuBarInserted) {
-            VStack(alignment: .leading, spacing: 6) {
-                UsageWidgetView(snapshot: model.snapshot)
-                Button("Quit") {
-                    NSApp.terminate(nil)
-                }
-                .buttonStyle(.borderless)
-                .font(.caption)
-            }
-            .padding(.bottom, 8)
-            .frame(width: 180)
-        } label: {
-            Label(model.snapshot.menuTitle, systemImage: "chart.bar.fill")
-        }
-        .menuBarExtraStyle(.window)
-    }
-
-    private var menuBarInserted: Binding<Bool> {
-        Binding(
-            get: { model.showsMenuBarIcon },
-            set: { newValue in
-                guard newValue != model.showsMenuBarIcon else { return }
-                DispatchQueue.main.async {
-                    self.model.showsMenuBarIcon = newValue
-                }
-            }
-        )
     }
 }
 

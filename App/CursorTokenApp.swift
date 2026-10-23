@@ -1,7 +1,10 @@
+import AppKit
+import ServiceManagement
 import SwiftUI
 
 @main
 struct CursorTokenApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var model: UsageModel
 
     init() {
@@ -28,11 +31,56 @@ struct CursorTokenApp: App {
             }
         }
 
-        MenuBarExtra {
-            MenuBarMenu(model: model)
+        MenuBarExtra(isInserted: $model.showsMenuBarIcon) {
+            UsageWidgetView(snapshot: model.snapshot)
+                .frame(width: 180)
         } label: {
-            Text(model.snapshot.menuTitle)
+            Label(model.snapshot.menuTitle, systemImage: "chart.bar.fill")
         }
-        .menuBarExtraStyle(.menu)
+        .menuBarExtraStyle(.window)
+    }
+}
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        if ProcessInfo.processInfo.arguments.contains("--menu-bar-off") {
+            try? SMAppService.mainApp.unregister()
+            NSApp.terminate(nil)
+            return
+        }
+        guard Self.shouldStayInMenuBar else { return }
+        NSApp.setActivationPolicy(.accessory)
+        DispatchQueue.main.async {
+            for window in NSApp.windows where window.canBecomeMain {
+                window.close()
+            }
+        }
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        NSApp.setActivationPolicy(.regular)
+        if !flag {
+            for window in NSApp.windows where window.canBecomeMain {
+                window.makeKeyAndOrderFront(nil)
+            }
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        return true
+    }
+
+    private static var shouldStayInMenuBar: Bool {
+        if ProcessInfo.processInfo.arguments.contains("--menu-bar") {
+            return true
+        }
+        return launchedAsLoginItem
+    }
+
+    private static var launchedAsLoginItem: Bool {
+        guard let event = NSAppleEventManager.shared().currentAppleEvent,
+              event.eventID == kAEOpenApplication,
+              let reason = event.paramDescriptor(forKeyword: keyAEPropData) else {
+            return false
+        }
+        return reason.enumCodeValue == keyAELaunchedAsLogInItem
     }
 }

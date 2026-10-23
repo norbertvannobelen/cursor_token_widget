@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 import WidgetKit
 
@@ -224,6 +223,10 @@ private struct AddWidgetSheet: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            Text("Control-click the widget on the desktop and choose Edit Widget. Menu bar icon adds an icon that opens the same usage details. Turn that switch off to remove the icon.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
                 Button("Done") { dismiss() }
@@ -324,23 +327,3 @@ struct UsageBar: View {
     }
 }
 
-struct MenuBarMenu: View {
-    @ObservedObject var model: UsageModel
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some View {
-        Button("Open Cursor Tokens") {
-            openWindow(id: "main")
-            NSApp.activate(ignoringOtherApps: true)
-        }
-        Button("Refresh") {
-            Task { await model.refresh() }
-        }
-        .disabled(model.isRefreshing)
-        Divider()
-        if model.snapshot.isSignedIn {
-            Button("Sign Out") { model.signOut() }
-        }
-        Button("Quit") { NSApp.terminate(nil) }
-    }
-}

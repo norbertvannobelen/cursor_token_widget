@@ -1,13 +1,17 @@
+import AppKit
 import Foundation
+import ServiceManagement
 import WidgetKit
 
 @MainActor
 final class UsageModel: ObservableObject {
     @Published var snapshot: UsageSnapshot
     @Published var isRefreshing = false
+    @Published var showsMenuBarIcon = false
 
     private var timer: Timer?
     private var started = false
+    private var menuBarReady = false
 
     init() {
         snapshot = SnapshotStore.load() ?? .signedOut()
@@ -23,6 +27,27 @@ final class UsageModel: ObservableObject {
         }
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
+        showsMenuBarIcon = MenuBarPreference.isEnabled()
+        MenuBarPreference.startObserving()
+        NotificationCenter.default.addObserver(
+            forName: .menuBarPreferenceChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.syncMenuBarService()
+            }
+        }
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didFinishLaunchingNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.menuBarReady = true
+                self?.syncMenuBarService()
+            }
+        }
         if CommandLine.arguments.contains("--use-local-cursor") {
             useLocalCursorAccount()
         } else {
@@ -60,6 +85,26 @@ final class UsageModel: ObservableObject {
         }
         SessionStore.save(normalized)
         Task { await refresh() }
+    }
+
+    func syncMenuBarService() {
+        guard menuBarReady else { return }
+        let app = NSApplication.shared
+        showsMenuBarIcon = MenuBarPreference.isEnabled()
+        let service = SMAppService.mainApp
+        if showsMenuBarIcon {
+            if service.status != .enabled {
+                try? service.register()
+            }
+            return
+        }
+        if service.status == .enabled {
+            try? service.unregister()
+        }
+        let hasWindow = app.windows.contains { $0.isVisible && $0.canBecomeMain }
+        if app.activationPolicy() == .accessory && !hasWindow {
+            app.terminate(nil)
+        }
     }
 
     func signOut() {

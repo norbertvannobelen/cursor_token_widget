@@ -34,7 +34,7 @@ make install
 
 Control-click the desktop, choose **Edit Widgets**, search for **Cursor Usage**, and drag the small widget onto the desktop.
 
-You can also open the app from the menu bar. The menu bar title shows the two allowance percents after you sign in.
+Control-click the widget on the desktop and choose **Edit Widget**. **Menu bar icon** adds an icon in the menu bar. Click that icon for the same allowance, on-demand, and token details as the widget. Turn the switch off to remove the icon. The icon stays after you close the window, and macOS can open it again at login.
 
 ## Refresh
 

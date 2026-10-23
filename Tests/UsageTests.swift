@@ -120,6 +120,14 @@ final class CursorDecodingTests: XCTestCase {
         XCTAssertEqual(usage.totalTokens, 42)
     }
 
+    func testMenuBarPreferenceStoresAFlag() {
+        XCTAssertFalse(MenuBarPreference.isEnabled(stored: nil))
+        XCTAssertFalse(MenuBarPreference.isEnabled(stored: "0"))
+        XCTAssertTrue(MenuBarPreference.isEnabled(stored: "1"))
+        XCTAssertEqual(MenuBarPreference.storedValue(enabled: true), "1")
+        XCTAssertEqual(MenuBarPreference.storedValue(enabled: false), "0")
+    }
+
     func testAggregatedTokensFallBackToRows() throws {
         let json = """
         {"aggregations":[{"inputTokens":"4","outputTokens":"1","cacheReadTokens":"5"}]}

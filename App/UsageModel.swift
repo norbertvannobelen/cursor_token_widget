@@ -8,6 +8,7 @@ final class UsageModel: ObservableObject {
     @Published var snapshot: UsageSnapshot
     @Published var isRefreshing = false
     @Published var showsMenuBarIcon = false
+    @Published var showingWidgetHelp = false
 
     private var timer: Timer?
     private var started = false
@@ -85,6 +86,23 @@ final class UsageModel: ObservableObject {
         }
         SessionStore.save(normalized)
         Task { await refresh() }
+    }
+
+    func setMenuBarIconEnabled(_ enabled: Bool) {
+        MenuBarPreference.setEnabled(enabled)
+        if showsMenuBarIcon != enabled {
+            showsMenuBarIcon = enabled
+        }
+        let service = SMAppService.mainApp
+        if enabled {
+            if service.status != .enabled {
+                try? service.register()
+            }
+            return
+        }
+        if service.status == .enabled {
+            try? service.unregister()
+        }
     }
 
     func syncMenuBarService() {

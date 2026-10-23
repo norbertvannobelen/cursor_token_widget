@@ -34,7 +34,7 @@ make install
 
 Control-click the desktop, choose **Edit Widgets**, search for **Cursor Usage**, and drag the small widget onto the desktop.
 
-The **Menu bar** line on the widget adds an icon in the menu bar. Click that icon for the same allowance, on-demand, and token details as the widget. Tap the line again to remove the icon. The icon stays after you close the window, and macOS can open it again at login.
+With Cursor Tokens in front, open the **Cursor Tokens** menu in the menu bar. **Add Desktop Widget…** shows how to place the widget. **Show Menu Bar Icon** adds an icon in the menu bar. Click that icon for the same allowance, on-demand, and token details as the widget. Choose the menu item again to remove the icon. The icon stays after you close the window, and macOS can open it again at login.
 
 ## Refresh
 

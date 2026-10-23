@@ -12,12 +12,14 @@ struct UsageWidgetView: View {
                 signedOut
             }
         }
-        .padding(10)
+        .padding(.top, 14)
+        .padding(.horizontal, 11)
+        .padding(.bottom, 10)
     }
 
     private var signedIn: some View {
         VStack(alignment: .leading, spacing: 5) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .center) {
                 Text("Usage")
                     .font(.system(size: 13, weight: .semibold))
                 Spacer(minLength: 4)

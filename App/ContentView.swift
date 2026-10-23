@@ -4,7 +4,6 @@ import WidgetKit
 struct ContentView: View {
     @EnvironmentObject private var model: UsageModel
     @State private var showingLogin = false
-    @State private var showingWidgetHelp = false
     @State private var pastedToken = ""
 
     var body: some View {
@@ -22,6 +21,9 @@ struct ContentView: View {
                 showingLogin = false
                 model.signIn(session: session)
             }
+        }
+        .sheet(isPresented: $model.showingWidgetHelp) {
+            AddWidgetSheet()
         }
     }
 
@@ -66,7 +68,6 @@ struct ContentView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
-            widgetHelp
         }
     }
 
@@ -91,7 +92,6 @@ struct ContentView: View {
                     model.signOut()
                 }
             }
-            widgetHelp
         }
     }
 
@@ -191,19 +191,6 @@ struct ContentView: View {
         return "Updated \(formatted) · refreshes every 5 minutes"
     }
 
-    private var widgetHelp: some View {
-        Button {
-            showingWidgetHelp = true
-        } label: {
-            Label("Add the desktop widget", systemImage: "plus.rectangle.on.rectangle")
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.large)
-        .sheet(isPresented: $showingWidgetHelp) {
-            AddWidgetSheet()
-        }
-    }
 }
 
 private struct AddWidgetSheet: View {
@@ -220,10 +207,6 @@ private struct AddWidgetSheet: View {
                 step("4", "Click the small widget, or drag it onto the desktop. It is the same size as the small Weather widget.")
             }
             Text("macOS does not let an app place a desktop widget by itself. Clicking the widget in that gallery adds it.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("The Menu bar line on the widget turns the menu bar icon on or off. Click that icon for the same usage details. Turn the line off again to remove the icon.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

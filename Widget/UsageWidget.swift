@@ -1,28 +1,9 @@
 import AppIntents
-import AppKit
 import os
 import SwiftUI
 import WidgetKit
 
 private let widgetLogger = Logger(subsystem: "org.tx.cursortokenwidget", category: "widget")
-
-struct ToggleMenuBarIconIntent: AppIntent {
-    static var title: LocalizedStringResource = "Menu bar icon"
-    static var isDiscoverable: Bool = false
-    static var openAppWhenRun: Bool = false
-
-    func perform() async throws -> some IntentResult {
-        let enabled = !MenuBarPreference.isEnabled()
-        MenuBarPreference.setEnabled(enabled)
-        if enabled {
-            MenuBarAgent.launchIfNeeded(arguments: ["--menu-bar"])
-        } else {
-            MenuBarAgent.launchIfNeeded(arguments: ["--menu-bar-off"])
-        }
-        WidgetCenter.shared.reloadAllTimelines()
-        return .result()
-    }
-}
 
 struct UsageEntry: TimelineEntry {
     let date: Date
@@ -82,29 +63,6 @@ struct UsageProvider: TimelineProvider {
     }
 }
 
-enum MenuBarAgent {
-    static func launchIfNeeded(arguments: [String]) {
-        let bundleID = "org.tx.cursortokenwidget"
-        guard NSWorkspace.shared.runningApplications.contains(where: { $0.bundleIdentifier == bundleID }) == false else {
-            return
-        }
-        let configuration = NSWorkspace.OpenConfiguration()
-        configuration.arguments = arguments
-        configuration.activates = false
-        NSWorkspace.shared.openApplication(at: containingAppURL(), configuration: configuration)
-    }
-
-    private static func containingAppURL() -> URL {
-        var url = Bundle.main.bundleURL
-        if url.pathExtension == "appex" {
-            url.deleteLastPathComponent()
-            url.deleteLastPathComponent()
-            url.deleteLastPathComponent()
-        }
-        return url
-    }
-}
-
 struct UsageWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "CursorUsageWidget", provider: UsageProvider()) { entry in
@@ -122,20 +80,12 @@ private struct WidgetFace: View {
     @Environment(\.widgetRenderingMode) private var renderingMode
 
     var body: some View {
-        VStack(spacing: 2) {
-            Button(intent: StayOnWidgetIntent()) {
-                UsageWidgetView(snapshot: snapshot, accented: renderingMode == .accented)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            Button(intent: ToggleMenuBarIconIntent()) {
-                Text(MenuBarPreference.isEnabled() ? "Menu bar on" : "Menu bar off")
-                    .font(.system(size: 10, weight: .medium))
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.plain)
+        Button(intent: StayOnWidgetIntent()) {
+            UsageWidgetView(snapshot: snapshot, accented: renderingMode == .accented)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .containerBackground(.background, for: .widget)
     }
 }

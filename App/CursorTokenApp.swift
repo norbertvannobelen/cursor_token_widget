@@ -22,6 +22,15 @@ struct CursorTokenApp: App {
         .windowResizability(.contentMinSize)
         .commands {
             CommandGroup(replacing: .newItem) {}
+            CommandGroup(after: .appSettings) {
+                Toggle("Show Menu Bar Icon", isOn: Binding(
+                    get: { model.showsMenuBarIcon },
+                    set: { model.setMenuBarIconEnabled($0) }
+                ))
+                Button("Add Desktop Widget…") {
+                    model.showingWidgetHelp = true
+                }
+            }
             CommandGroup(after: .toolbar) {
                 Button("Refresh") {
                     Task { await model.refresh() }

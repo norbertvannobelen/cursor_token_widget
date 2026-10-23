@@ -90,9 +90,12 @@ final class UsageModel: ObservableObject {
     func syncMenuBarService() {
         guard menuBarReady else { return }
         let app = NSApplication.shared
-        showsMenuBarIcon = MenuBarPreference.isEnabled()
+        let enabled = MenuBarPreference.isEnabled()
+        if showsMenuBarIcon != enabled {
+            showsMenuBarIcon = enabled
+        }
         let service = SMAppService.mainApp
-        if showsMenuBarIcon {
+        if enabled {
             if service.status != .enabled {
                 try? service.register()
             }

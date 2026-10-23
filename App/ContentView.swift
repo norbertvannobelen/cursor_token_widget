@@ -223,7 +223,7 @@ private struct AddWidgetSheet: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Control-click the widget on the desktop and choose Edit Widget. Menu bar icon adds an icon that opens the same usage details. Turn that switch off to remove the icon.")
+            Text("The Menu bar line on the widget turns the menu bar icon on or off. Click that icon for the same usage details. Turn the line off again to remove the icon.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

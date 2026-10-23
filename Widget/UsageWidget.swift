@@ -6,15 +6,21 @@ import WidgetKit
 
 private let widgetLogger = Logger(subsystem: "org.tx.cursortokenwidget", category: "widget")
 
-struct UsageWidgetConfiguration: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource = "Cursor Usage"
-    static var description = IntentDescription("Allowance, on-demand spend, and recent token use.")
-
-    @Parameter(title: "Menu bar icon", default: false)
-    var showsMenuBarIcon: Bool
+struct ToggleMenuBarIconIntent: AppIntent {
+    static var title: LocalizedStringResource = "Menu bar icon"
+    static var isDiscoverable: Bool = false
+    static var openAppWhenRun: Bool = false
 
     func perform() async throws -> some IntentResult {
-        .result()
+        let enabled = !MenuBarPreference.isEnabled()
+        MenuBarPreference.setEnabled(enabled)
+        if enabled {
+            MenuBarAgent.launchIfNeeded(arguments: ["--menu-bar"])
+        } else {
+            MenuBarAgent.launchIfNeeded(arguments: ["--menu-bar-off"])
+        }
+        WidgetCenter.shared.reloadAllTimelines()
+        return .result()
     }
 }
 
@@ -23,30 +29,25 @@ struct UsageEntry: TimelineEntry {
     let snapshot: UsageSnapshot
 }
 
-struct UsageProvider: AppIntentTimelineProvider {
+struct UsageProvider: TimelineProvider {
     func placeholder(in context: Context) -> UsageEntry {
         UsageEntry(date: Date(), snapshot: .placeholder)
     }
 
-    func snapshot(for configuration: UsageWidgetConfiguration, in context: Context) async -> UsageEntry {
+    func getSnapshot(in context: Context, completion: @escaping (UsageEntry) -> Void) {
         if context.isPreview {
-            return UsageEntry(date: Date(), snapshot: .placeholder)
+            completion(UsageEntry(date: Date(), snapshot: .placeholder))
+            return
         }
-        return UsageEntry(date: Date(), snapshot: SnapshotStore.load() ?? .signedOut())
+        completion(UsageEntry(date: Date(), snapshot: SnapshotStore.load() ?? .signedOut()))
     }
 
-    func timeline(for configuration: UsageWidgetConfiguration, in context: Context) async -> Timeline<UsageEntry> {
-        let enabled = configuration.showsMenuBarIcon
-        let changed = MenuBarPreference.isEnabled() != enabled
-        MenuBarPreference.setEnabled(enabled)
-        if enabled {
-            MenuBarAgent.launchIfNeeded(arguments: ["--menu-bar"])
-        } else if changed {
-            MenuBarAgent.launchIfNeeded(arguments: ["--menu-bar-off"])
+    func getTimeline(in context: Context, completion: @escaping (Timeline<UsageEntry>) -> Void) {
+        Task {
+            let snapshot = await Self.loadSnapshot()
+            let next = Date().addingTimeInterval(UsageTiming.refreshInterval)
+            completion(Timeline(entries: [UsageEntry(date: Date(), snapshot: snapshot)], policy: .after(next)))
         }
-        let snapshot = await Self.loadSnapshot()
-        let next = Date().addingTimeInterval(UsageTiming.refreshInterval)
-        return Timeline(entries: [UsageEntry(date: Date(), snapshot: snapshot)], policy: .after(next))
     }
 
     private static func loadSnapshot() async -> UsageSnapshot {
@@ -106,7 +107,7 @@ enum MenuBarAgent {
 
 struct UsageWidget: Widget {
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: "CursorUsageWidget", intent: UsageWidgetConfiguration.self, provider: UsageProvider()) { entry in
+        StaticConfiguration(kind: "CursorUsageWidget", provider: UsageProvider()) { entry in
             WidgetFace(snapshot: entry.snapshot)
         }
         .configurationDisplayName("Cursor Usage")
@@ -121,12 +122,20 @@ private struct WidgetFace: View {
     @Environment(\.widgetRenderingMode) private var renderingMode
 
     var body: some View {
-        Button(intent: StayOnWidgetIntent()) {
-            UsageWidgetView(snapshot: snapshot, accented: renderingMode == .accented)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .contentShape(Rectangle())
+        VStack(spacing: 2) {
+            Button(intent: StayOnWidgetIntent()) {
+                UsageWidgetView(snapshot: snapshot, accented: renderingMode == .accented)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            Button(intent: ToggleMenuBarIconIntent()) {
+                Text(MenuBarPreference.isEnabled() ? "Menu bar on" : "Menu bar off")
+                    .font(.system(size: 10, weight: .medium))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
         .containerBackground(.background, for: .widget)
     }
 }

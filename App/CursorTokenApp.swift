@@ -31,13 +31,33 @@ struct CursorTokenApp: App {
             }
         }
 
-        MenuBarExtra(isInserted: $model.showsMenuBarIcon) {
-            UsageWidgetView(snapshot: model.snapshot)
-                .frame(width: 180)
+        MenuBarExtra(isInserted: menuBarInserted) {
+            VStack(alignment: .leading, spacing: 6) {
+                UsageWidgetView(snapshot: model.snapshot)
+                Button("Quit") {
+                    NSApp.terminate(nil)
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+            }
+            .padding(.bottom, 8)
+            .frame(width: 180)
         } label: {
             Label(model.snapshot.menuTitle, systemImage: "chart.bar.fill")
         }
         .menuBarExtraStyle(.window)
+    }
+
+    private var menuBarInserted: Binding<Bool> {
+        Binding(
+            get: { model.showsMenuBarIcon },
+            set: { newValue in
+                guard newValue != model.showsMenuBarIcon else { return }
+                DispatchQueue.main.async {
+                    self.model.showsMenuBarIcon = newValue
+                }
+            }
+        )
     }
 }
 
@@ -55,6 +75,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 window.close()
             }
         }
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        !MenuBarPreference.isEnabled()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

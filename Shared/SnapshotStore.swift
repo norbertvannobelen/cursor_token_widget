@@ -22,12 +22,12 @@ enum SnapshotStore {
     }
 
     static func load() -> UsageSnapshot? {
-        if let data = AppGroup.readData(named: fileName),
+        if let data = KeychainStore.load(account: account),
            let snapshot = try? decoder.decode(UsageSnapshot.self, from: data) {
-            KeychainStore.save(data, account: account)
             return snapshot
         }
-        guard let data = KeychainStore.load(account: account) else { return nil }
+        guard let data = AppGroup.readData(named: fileName) else { return nil }
+        KeychainStore.save(data, account: account)
         return try? decoder.decode(UsageSnapshot.self, from: data)
     }
 }

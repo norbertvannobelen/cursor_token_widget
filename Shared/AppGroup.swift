@@ -15,7 +15,7 @@ enum AppGroup {
 
     static func readData(named name: String) -> Data? {
         for url in candidateURLs(named: name) {
-            if let data = try? Data(contentsOf: url), !data.isEmpty {
+            if let data = readBounded(url), !data.isEmpty {
                 return data
             }
         }
@@ -24,24 +24,79 @@ enum AppGroup {
 
     static func remove(named name: String) {
         for url in candidateURLs(named: name) {
-            try? FileManager.default.removeItem(at: url)
+            if directoryOverride != nil {
+                try? FileManager.default.removeItem(at: url)
+            } else {
+                _ = performBounded { try? FileManager.default.removeItem(at: url) }
+            }
         }
     }
 
     static func writeData(_ data: Data, named name: String, permissions: Int? = nil) {
         for url in candidateURLs(named: name) {
-            let directory = url.deletingLastPathComponent()
-            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            do {
-                try data.write(to: url, options: .atomic)
-            } catch {
-                continue
+            let wrote = performBounded {
+                let directory = url.deletingLastPathComponent()
+                try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                do {
+                    try data.write(to: url, options: .atomic)
+                } catch {
+                    return
+                }
+                if let permissions {
+                    try? FileManager.default.setAttributes([.posixPermissions: permissions], ofItemAtPath: url.path)
+                }
+                removexattr(url.path, "com.apple.quarantine", 0)
             }
-            if let permissions {
-                try? FileManager.default.setAttributes([.posixPermissions: permissions], ofItemAtPath: url.path)
+            if !wrote {
+                return
             }
-            removexattr(url.path, "com.apple.quarantine", 0)
         }
+    }
+
+    /// A stuck group container must not freeze the menu bar process. After one slow
+    /// attempt, later calls skip the files and callers use the keychain copy.
+    private static let stateLock = NSLock()
+    private static var fileAccessDisabled = false
+    private static let fileAccessTimeout: TimeInterval = 0.35
+
+    private static func readBounded(_ url: URL) -> Data? {
+        if directoryOverride != nil {
+            return try? Data(contentsOf: url)
+        }
+        let box = DataBox()
+        let finished = performBounded {
+            box.set(try? Data(contentsOf: url))
+        }
+        return finished ? box.get() : nil
+    }
+
+    private static func performBounded(_ work: @escaping () -> Void) -> Bool {
+        if directoryOverride != nil {
+            work()
+            return true
+        }
+        stateLock.lock()
+        let disabled = fileAccessDisabled
+        stateLock.unlock()
+        if disabled {
+            return false
+        }
+        let box = DataBox()
+        DispatchQueue.global(qos: .userInitiated).async {
+            work()
+            box.set(Data())
+        }
+        let deadline = Date().addingTimeInterval(fileAccessTimeout)
+        while Date() < deadline {
+            if box.get() != nil {
+                return true
+            }
+            Thread.sleep(forTimeInterval: 0.01)
+        }
+        stateLock.lock()
+        fileAccessDisabled = true
+        stateLock.unlock()
+        return false
     }
 
     private static func candidateURLs(named name: String) -> [URL] {
@@ -57,8 +112,24 @@ enum AppGroup {
             }
         }
         append(realGroupDirectory())
-        append(FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: identifier))
         return urls
+    }
+
+    private final class DataBox: @unchecked Sendable {
+        private let lock = NSLock()
+        private var data: Data?
+
+        func set(_ data: Data?) {
+            lock.lock()
+            self.data = data ?? Data()
+            lock.unlock()
+        }
+
+        func get() -> Data? {
+            lock.lock()
+            defer { lock.unlock() }
+            return data
+        }
     }
 
     /// The sandbox home is the app container, so shared files are opened from the real home.

@@ -17,6 +17,17 @@ enum UsageFormatting {
         return Int(percent.rounded()) > 90
     }
 
+    /// Menu bar icon color. On-demand spend wins over the 90% warning.
+    static func menuBarIconTone(cursor: Double?, other: Double?, onDemandPercent: Double?, onDemandUsedCents: Int?) -> MenuBarIconTone {
+        if let onDemandUsedCents, onDemandUsedCents > 0 {
+            return .onDemand
+        }
+        if exceedsWarning(cursor) || exceedsWarning(other) || exceedsWarning(onDemandPercent) {
+            return .warning
+        }
+        return .normal
+    }
+
     /// `used` and `limit` are cent amounts. A missing or non-positive limit has no bar.
     static func percentOfLimit(used: Int?, limit: Int?) -> Double? {
         guard let limit, limit > 0 else { return nil }
@@ -75,6 +86,12 @@ enum MembershipLabel {
             return nil
         }
     }
+}
+
+enum MenuBarIconTone: Equatable {
+    case normal
+    case warning
+    case onDemand
 }
 
 enum DateWindows {

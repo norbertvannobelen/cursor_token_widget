@@ -53,7 +53,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return
         }
-        guard Self.shouldStayInMenuBar else { return }
+        let stayInMenuBar = MenuBarAgentLauncher.consumeStayRequest()
+            || (Self.launchedAsLoginItem && MenuBarPreference.isEnabled())
+        Self.userOpenedMainWindow = !stayInMenuBar
+        guard stayInMenuBar else { return }
         NSApp.setActivationPolicy(.accessory)
         DispatchQueue.main.async {
             for window in NSApp.windows where window.canBecomeMain {
@@ -63,10 +66,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        !MenuBarPreference.isEnabled()
+        Self.userOpenedMainWindow
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard !Self.handoffStarted, Self.userOpenedMainWindow, MenuBarPreference.isEnabled() else {
+            return .terminateNow
+        }
+        Self.handoffStarted = true
+        MenuBarController.relinquishForHandoff()
+        MenuBarAgentLauncher.launchReplacement {
+            NSApp.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        Self.userOpenedMainWindow = true
         NSApp.setActivationPolicy(.regular)
         if !flag {
             for window in NSApp.windows where window.canBecomeMain {
@@ -77,12 +93,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    private static var shouldStayInMenuBar: Bool {
-        if ProcessInfo.processInfo.arguments.contains("--menu-bar") {
-            return true
-        }
-        return launchedAsLoginItem
-    }
+    static var userOpenedMainWindow = false
+    private static var handoffStarted = false
 
     private static var launchedAsLoginItem: Bool {
         guard let event = NSAppleEventManager.shared().currentAppleEvent,

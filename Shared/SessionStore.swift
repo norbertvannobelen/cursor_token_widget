@@ -11,11 +11,12 @@ enum SessionStore {
     }
 
     static func load() -> String? {
-        if let value = string(from: AppGroup.readData(named: fileName)) {
-            KeychainStore.save(Data(value.utf8), account: account)
+        if let value = string(from: KeychainStore.load(account: account)) {
             return value
         }
-        return string(from: KeychainStore.load(account: account))
+        guard let value = string(from: AppGroup.readData(named: fileName)) else { return nil }
+        KeychainStore.save(Data(value.utf8), account: account)
+        return value
     }
 
     static func delete() {
